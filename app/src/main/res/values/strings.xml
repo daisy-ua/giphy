@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Giphy</string>
+    <string name="home_label">Home</string>
+    <string name="search_hint">Search GIPHY</string>
+</resources>
