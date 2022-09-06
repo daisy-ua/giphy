@@ -4,6 +4,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.daisy.data.network.services.GIFService
+import com.daisy.data.repository.pagingsource.GIFSearchResultPagingSource
 import com.daisy.data.repository.pagingsource.GIFTrendingPagingSource
 import com.daisy.domain.models.GIFObject
 import com.daisy.domain.repository.GIFRepository
@@ -24,6 +25,12 @@ class GIFRepositoryImpl @Inject constructor(
     }
 
     override suspend fun fetchSearchResultGIFs(query: String): Flow<PagingData<GIFObject>> {
-        TODO("Not yet implemented")
+        return Pager(
+            config = PagingConfig(
+                pageSize = 20,
+                enablePlaceholders = false
+            ),
+            pagingSourceFactory = { GIFSearchResultPagingSource(remoteDataSource, query) }
+        ).flow
     }
 }

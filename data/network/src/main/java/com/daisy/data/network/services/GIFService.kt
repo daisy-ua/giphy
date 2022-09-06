@@ -10,4 +10,10 @@ interface GIFService {
     suspend fun getTrendingGIFs(
         @Query("offset") offset: Int,
     ): GIFObjectListDto
+
+    @GET("search")
+    suspend fun getSearchResultsGIFs(
+        @Query("q") query: String,
+        @Query("offset") offset: Int,
+    ): GIFObjectListDto
 }
