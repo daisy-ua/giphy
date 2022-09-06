@@ -1,25 +1,25 @@
 package com.daisy.data.repository.pagingsource
 
-import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.daisy.data.network.models.GIFObjectDto
 import com.daisy.data.network.services.GIFService
+import com.daisy.data.repository.mappers.toDomain
+import com.daisy.domain.models.GIFObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class GIFTrendingPagingSource(
     private val apiService: GIFService,
-) : PagingSource<Int, GIFObjectDto>() {
+) : PagingSource<Int, GIFObject>() {
 
-    override fun getRefreshKey(state: PagingState<Int, GIFObjectDto>): Int? {
+    override fun getRefreshKey(state: PagingState<Int, GIFObject>): Int? {
         return state.anchorPosition?.let { anchorPosition ->
             state.closestPageToPosition(anchorPosition)?.prevKey?.plus(1)
                 ?: state.closestPageToPosition(anchorPosition)?.nextKey?.minus(1)
         }
     }
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, GIFObjectDto> {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, GIFObject> {
         val nextPageNumber = params.key ?: 0
 
         return try {
@@ -27,13 +27,12 @@ class GIFTrendingPagingSource(
                 val offset = nextPageNumber * params.loadSize
 
                 val response = apiService.getTrendingGIFs(offset)
-                Log.d("daisy", response.data.toString())
                 val nextKey = if (response.data.isEmpty()) null else nextPageNumber + 1
 
                 val prevKey = if (nextPageNumber == 0) null else nextPageNumber - 1
 
                 LoadResult.Page(
-                    data = response.data,
+                    data = response.toDomain(),
                     prevKey = prevKey,
                     nextKey = nextKey
                 )

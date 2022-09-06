@@ -5,7 +5,9 @@ data class GIFObjectDto(
 
     val title: String,
 
-    val url: String,
+    val images: ImagesDto,
+)
 
-    val images: ImageFixedHeight
+data class GIFObjectListDto(
+    val data: List<GIFObjectDto>,
 )

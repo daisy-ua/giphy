@@ -1,6 +1,6 @@
 package com.daisy.data.repository.di
 
-import com.daisy.data.repository.repository.GIFRepository
+import com.daisy.domain.repository.GIFRepository
 import com.daisy.data.repository.repository.GIFRepositoryImpl
 import dagger.Binds
 import dagger.Module
