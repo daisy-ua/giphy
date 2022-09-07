@@ -2,6 +2,7 @@ package com.daisy.data.repository.di
 
 import com.daisy.data.network.services.GIFService
 import com.daisy.data.repository.repository.GIFRepositoryImpl
+import com.daisy.data.repository.repository.ImageRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,4 +18,9 @@ object RepositoryImpModule {
     fun provideGIFRepository(
         remoteSource: GIFService,
     ): GIFRepositoryImpl = GIFRepositoryImpl(remoteSource)
+
+    @Provides
+    @Singleton
+    fun provideImageRepository(
+    ): ImageRepositoryImpl = ImageRepositoryImpl()
 }
