@@ -46,6 +46,7 @@ android {
 dependencies {
 
     implementation project(":data:network")
+    implementation project(":data:cache")
     implementation project(":data:repository")
     implementation project(':domain')
 

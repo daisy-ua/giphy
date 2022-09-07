@@ -2,6 +2,7 @@ apply from: "$rootDir/common-android-library-build.gradle"
 
 dependencies {
     implementation project(":data:network")
+    implementation project(":data:cache")
     implementation project(':domain')
 
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
