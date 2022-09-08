@@ -1,13 +1,10 @@
 package com.daisy.giphy.ui.fragments.home
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import com.bumptech.glide.load.resource.gif.GifDrawable
 import com.daisy.domain.models.GIFObject
-import com.daisy.domain.usecases.CacheImage
 import com.daisy.domain.usecases.FetchSearchResultGIFs
 import com.daisy.domain.usecases.FetchTrendingGIFs
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +16,6 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val fetchTrendingGIFs: FetchTrendingGIFs,
     private val fetchSearchResultGIFs: FetchSearchResultGIFs,
-    private val cacheImage: CacheImage,
 ) : ViewModel() {
     val state: StateFlow<UiState>
 
@@ -86,16 +82,6 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun fetchSearchResultGIFs(query: String) =
         fetchSearchResultGIFs.invoke(query)
-
-    fun cacheImage(
-        context: Context,
-        gifDrawable: GifDrawable,
-        filename: String,
-    ) = viewModelScope.launch {
-        if (shouldCacheImage) {
-            cacheImage.invoke(context, gifDrawable, filename).toString()
-        }
-    }
 }
 
 data class UiState(

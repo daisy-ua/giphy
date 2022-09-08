@@ -2,7 +2,7 @@ package com.daisy.data.cache.di
 
 import android.content.Context
 import androidx.room.Room
-import com.daisy.data.cache.Constants
+import com.daisy.data.cache.constants.Constants
 import com.daisy.data.cache.dao.GIFDao
 import com.daisy.data.cache.database.LocalDatabase
 import dagger.Module

@@ -48,7 +48,7 @@ class HomeFragment : Fragment() {
         )
 
         bindRecyclerView(
-            gifAdapter = GIFPagingAdapter(viewModel::cacheImage),
+            gifAdapter = GIFPagingAdapter(),
             uiState = uiState,
             pagingData = pagingData,
             onScrollChanged = uiActions
