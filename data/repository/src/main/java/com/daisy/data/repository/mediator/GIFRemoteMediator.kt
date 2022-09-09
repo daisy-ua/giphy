@@ -45,7 +45,9 @@ class GIFRemoteMediator(
 
         try {
             val apiResponse = remoteSource.getTrendingGIFs(offset)
-            val gifs = apiResponse.data
+            val gifs = apiResponse.data.filter { gif ->
+                !localDatabase.excludedGifDao().isGIFExcluded(gif.id)
+            }
             val endOfPaginationReached = gifs.isEmpty()
 
             localDatabase.withTransaction {

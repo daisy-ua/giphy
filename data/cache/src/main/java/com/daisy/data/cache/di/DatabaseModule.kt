@@ -3,7 +3,9 @@ package com.daisy.data.cache.di
 import android.content.Context
 import androidx.room.Room
 import com.daisy.data.cache.constants.Constants
+import com.daisy.data.cache.dao.ExcludedGIFDao
 import com.daisy.data.cache.dao.GIFDao
+import com.daisy.data.cache.dao.RemoteKeysDao
 import com.daisy.data.cache.database.LocalDatabase
 import dagger.Module
 import dagger.Provides
@@ -28,4 +30,12 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideGIFDao(database: LocalDatabase): GIFDao = database.gifDao()
+
+    @Provides
+    @Singleton
+    fun provideExcludedGIFDao(database: LocalDatabase): ExcludedGIFDao = database.excludedGifDao()
+
+    @Provides
+    @Singleton
+    fun provideRemoteKeysDao(database: LocalDatabase): RemoteKeysDao = database.remoteKeysDao()
 }

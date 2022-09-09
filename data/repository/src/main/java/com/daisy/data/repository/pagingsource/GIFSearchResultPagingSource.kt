@@ -2,6 +2,7 @@ package com.daisy.data.repository.pagingsource
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.daisy.data.cache.database.LocalDatabase
 import com.daisy.data.network.services.GIFService
 import com.daisy.data.repository.mappers.toDomain
 import com.daisy.domain.models.GIFObject
@@ -9,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class GIFSearchResultPagingSource(
+    private val localDatabase: LocalDatabase,
     private val apiService: GIFService,
     private val query: String,
 ) : PagingSource<Int, GIFObject>() {
@@ -26,8 +28,11 @@ class GIFSearchResultPagingSource(
             withContext(Dispatchers.IO) {
                 val offset = nextPageNumber * params.loadSize
 
-                val response = apiService.getSearchResultsGIFs(query, offset)
-                val nextKey = if (response.data.isEmpty()) null else nextPageNumber + 1
+                val response = apiService.getSearchResultsGIFs(query, offset).data.filter { gif ->
+                    !localDatabase.excludedGifDao().isGIFExcluded(gif.id)
+                }
+
+                val nextKey = if (response.isEmpty()) null else nextPageNumber + 1
 
                 val prevKey = if (nextPageNumber == 0) null else nextPageNumber - 1
 

@@ -18,4 +18,7 @@ interface RemoteKeysDao {
     @Query("DELETE FROM ${Constants.REMOTE_KEYS_TABLE}")
     suspend fun clearRemoteKeys()
 
+    @Query("DELETE FROM ${Constants.REMOTE_KEYS_TABLE} where gifId in (:gifIds)")
+    suspend fun deleteRemoteKeys(gifIds: List<String>)
+
 }

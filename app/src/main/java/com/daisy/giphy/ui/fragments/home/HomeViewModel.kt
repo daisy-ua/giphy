@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.filter
 import com.daisy.domain.models.GIFObject
+import com.daisy.domain.usecases.ExcludeGIFsFromResponse
 import com.daisy.domain.usecases.FetchSearchResultGIFs
 import com.daisy.domain.usecases.FetchTrendingGIFs
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +18,15 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val fetchTrendingGIFs: FetchTrendingGIFs,
     private val fetchSearchResultGIFs: FetchSearchResultGIFs,
+    private val excludeGIFsFromResponse: ExcludeGIFsFromResponse,
 ) : ViewModel() {
+    private val _modificationEvents = MutableStateFlow<List<BaseEvents>>(emptyList())
+    val modificationEvents = _modificationEvents.asStateFlow()
+
+    fun emitEvent(events: BaseEvents) {
+        _modificationEvents.value += events
+    }
+
     val state: StateFlow<UiState>
 
     var pagingDataFlow: Flow<PagingData<GIFObject>>
@@ -82,6 +92,27 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun fetchSearchResultGIFs(query: String) =
         fetchSearchResultGIFs.invoke(query)
+
+    private fun excludeGIFsFromResponse(ids: List<String>) =
+        viewModelScope.launch {
+            excludeGIFsFromResponse.invoke(ids)
+        }
+
+    fun applyEvents(
+        paging: PagingData<GIFObject>,
+        event: BaseEvents,
+    ): PagingData<GIFObject> {
+        return when (event) {
+            is BaseEvents.Remove -> {
+                paging
+                    .filter { gif ->
+                        !event.ids.contains(gif.id)
+                    }.also {
+                        excludeGIFsFromResponse(event.ids)
+                    }
+            }
+        }
+    }
 }
 
 data class UiState(
@@ -94,6 +125,10 @@ sealed class UiAction {
     data class Search(val query: String) : UiAction()
 
     data class Scroll(val currentQuery: String) : UiAction()
+}
+
+sealed class BaseEvents {
+    data class Remove(val ids: List<String>) : BaseEvents()
 }
 
 const val DEFAULT_QUERY = ""

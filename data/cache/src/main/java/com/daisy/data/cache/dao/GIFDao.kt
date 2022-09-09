@@ -16,6 +16,9 @@ interface GIFDao {
     @Query("DELETE FROM ${Constants.CACHE_TABLE}")
     suspend fun clearCache()
 
+    @Query("DELETE FROM ${Constants.CACHE_TABLE} where uid in (:ids)")
+    suspend fun deleteGIFs(ids: List<String>)
+
     @Query("SELECT * FROM ${Constants.CACHE_TABLE} ORDER BY date_added ASC")
     fun getGIFs(): PagingSource<Int, GIFObjectEntity>
 }
