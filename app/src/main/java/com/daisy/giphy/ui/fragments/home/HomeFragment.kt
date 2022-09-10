@@ -1,5 +1,6 @@
 package com.daisy.giphy.ui.fragments.home
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.*
 import android.widget.SearchView
@@ -30,17 +31,39 @@ import kotlinx.coroutines.launch
 class HomeFragment : Fragment() {
     private val viewModel: HomeViewModel by viewModels()
 
+    private lateinit var gifAdapter: GIFPagingAdapter
+    private lateinit var tracker: SelectionTracker<String>
+    private var actionMode: ActionMode? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
         val binding = FragmentHomeBinding.inflate(inflater, container, false)
+
+        gifAdapter = GIFPagingAdapter()
+
         binding.bindState(
             uiState = viewModel.state,
             pagingData = viewModel.pagingDataFlow,
             uiActions = viewModel.accept
         )
         return binding.root
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        tracker.onSaveInstanceState(outState)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        tracker.onRestoreInstanceState(savedInstanceState)
+        if (tracker.hasSelection()) {
+            actionMode = (activity as MainActivity).startSupportActionMode(actionModeCallback)
+            actionMode?.title = "${tracker.selection.size()} ${getString(R.string.action_selected)}"
+        }
+
+        super.onViewStateRestored(savedInstanceState)
     }
 
     private fun FragmentHomeBinding.bindState(
@@ -53,19 +76,13 @@ class HomeFragment : Fragment() {
             onQueryChanged = uiActions
         )
 
-        val adapter = GIFPagingAdapter()
-
         bindRecyclerView(
-            gifAdapter = adapter,
             uiState = uiState,
             pagingData = pagingData,
             onScrollChanged = uiActions
         )
 
-        bindSelection(
-            gifAdapter = adapter,
-            onModificationApplied = viewModel::emitEvent
-        )
+        bindSelection()
     }
 
     private fun FragmentHomeBinding.bindSearchView(
@@ -89,15 +106,19 @@ class HomeFragment : Fragment() {
     }
 
     private fun FragmentHomeBinding.bindRecyclerView(
-        gifAdapter: GIFPagingAdapter,
         uiState: StateFlow<UiState>,
         pagingData: Flow<PagingData<GIFObject>>,
         onScrollChanged: (UiAction) -> Unit,
     ) {
+        val orientation = requireActivity().resources.configuration.orientation
+
+        val columnSize =
+            if (orientation == Configuration.ORIENTATION_PORTRAIT) PORTRAIT_COLUMNS else LANDSCAPE_COLUMN
+
         recyclerView.apply {
             adapter = gifAdapter
             setHasFixedSize(true)
-            layoutManager = GridLayoutManager(context, PORTRAIT_COLUMNS)
+            layoutManager = GridLayoutManager(context, columnSize)
         }
 
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -149,11 +170,8 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun FragmentHomeBinding.bindSelection(
-        gifAdapter: GIFPagingAdapter,
-        onModificationApplied: (BaseEvents) -> Unit,
-    ) {
-        val tracker = SelectionTracker.Builder(
+    private fun FragmentHomeBinding.bindSelection() {
+        tracker = SelectionTracker.Builder(
             TRACKER_SELECTION_ID,
             recyclerView,
             ItemsKeyProvider(gifAdapter),
@@ -164,52 +182,6 @@ class HomeFragment : Fragment() {
         ).build()
 
         gifAdapter.tracker = tracker
-
-        var actionMode: ActionMode? = null
-
-        val actionModeCallback = object : ActionMode.Callback {
-            override fun onCreateActionMode(
-                mode: ActionMode?,
-                menu: Menu?,
-            ): Boolean {
-                mode?.menuInflater?.inflate(R.menu.menu, menu)
-                return true
-            }
-
-            override fun onPrepareActionMode(
-                mode: ActionMode?,
-                menu: Menu?,
-            ) = true
-
-            override fun onActionItemClicked(
-                mode: ActionMode?,
-                item: MenuItem?,
-            ): Boolean {
-                return when (item?.itemId) {
-                    R.id.action_delete -> {
-
-                        val gifsSelected = gifAdapter.snapshot().filter { gif ->
-                            gif != null && tracker.selection.contains(gif.id)
-                        }.map { gif ->
-                            gif!!.id
-                        }
-
-                        onModificationApplied(BaseEvents.Remove(gifsSelected))
-
-                        actionMode?.finish()
-                        true
-                    }
-                    else -> {
-                        false
-                    }
-                }
-            }
-
-            override fun onDestroyActionMode(mode: ActionMode?) {
-                tracker.clearSelection()
-                actionMode = null
-            }
-        }
 
         tracker.addObserver(
             object : SelectionTracker.SelectionObserver<String>() {
@@ -231,9 +203,55 @@ class HomeFragment : Fragment() {
         )
     }
 
+    private val actionModeCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(
+            mode: ActionMode?,
+            menu: Menu?,
+        ): Boolean {
+            mode?.menuInflater?.inflate(R.menu.menu, menu)
+            return true
+        }
+
+        override fun onPrepareActionMode(
+            mode: ActionMode?,
+            menu: Menu?,
+        ) = true
+
+        override fun onActionItemClicked(
+            mode: ActionMode?,
+            item: MenuItem?,
+        ): Boolean {
+            return when (item?.itemId) {
+                R.id.action_delete -> {
+
+                    val gifsSelected = gifAdapter.snapshot().filter { gif ->
+                        gif != null && tracker.selection.contains(gif.id)
+                    }.map { gif ->
+                        gif!!.id
+                    }
+
+                    viewModel.emitEvent(BaseEvents.Remove(gifsSelected))
+
+                    actionMode?.finish()
+                    true
+                }
+                else -> {
+                    false
+                }
+            }
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode?) {
+            tracker.clearSelection()
+            actionMode = null
+        }
+    }
+
 
     private companion object {
         const val PORTRAIT_COLUMNS = 2
+
+        const val LANDSCAPE_COLUMN = 4
 
         const val TRACKER_SELECTION_ID = "selectionItem"
     }
