@@ -1,7 +1,6 @@
 package com.daisy.data.repository.repository
 
 import androidx.paging.*
-import androidx.room.withTransaction
 import com.daisy.data.cache.database.LocalDatabase
 import com.daisy.data.network.services.GIFService
 import com.daisy.data.repository.mappers.getExcludedEntities

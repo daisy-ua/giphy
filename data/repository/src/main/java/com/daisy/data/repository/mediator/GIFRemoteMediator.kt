@@ -10,6 +10,8 @@ import com.daisy.data.cache.entities.GIFObjectEntity
 import com.daisy.data.cache.entities.RemoteKeys
 import com.daisy.data.network.services.GIFService
 import com.daisy.data.repository.mappers.toEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -22,57 +24,61 @@ class GIFRemoteMediator(
         loadType: LoadType,
         state: PagingState<Int, GIFObjectEntity>,
     ): MediatorResult {
-        val nextPageNumber = when (loadType) {
-            LoadType.REFRESH -> {
-                val remoteKeys = getRemoteKeyClosestToCurrentPosition(state)
-                remoteKeys?.nextKey?.minus(1) ?: 0
+        return withContext(Dispatchers.IO) {
+            val nextPageNumber = when (loadType) {
+                LoadType.REFRESH -> {
+                    val remoteKeys = getRemoteKeyClosestToCurrentPosition(state)
+                    remoteKeys?.nextKey?.minus(1) ?: 0
+                }
+                LoadType.PREPEND -> {
+                    val remoteKeys = getRemoteKeyForFirstItem(state)
+                    val prevKey = remoteKeys?.prevKey
+                        ?: return@withContext MediatorResult.Success(endOfPaginationReached = remoteKeys != null)
+                    prevKey
+                }
+                LoadType.APPEND -> {
+                    val remoteKeys = getRemoteKeyForLastItem(state)
+                    val nextKey = remoteKeys?.nextKey
+                        ?: return@withContext MediatorResult.Success(endOfPaginationReached = remoteKeys != null)
+                    nextKey
+                }
             }
-            LoadType.PREPEND -> {
-                val remoteKeys = getRemoteKeyForFirstItem(state)
-                val prevKey = remoteKeys?.prevKey
-                    ?: return MediatorResult.Success(endOfPaginationReached = remoteKeys != null)
-                prevKey
-            }
-            LoadType.APPEND -> {
-                val remoteKeys = getRemoteKeyForLastItem(state)
-                val nextKey = remoteKeys?.nextKey
-                    ?: return MediatorResult.Success(endOfPaginationReached = remoteKeys != null)
-                nextKey
-            }
-        }
 
-        val offset = nextPageNumber * state.config.pageSize
+            val offset = nextPageNumber * state.config.pageSize
 
-        try {
-            val apiResponse = remoteSource.getTrendingGIFs(offset)
-            val gifs = apiResponse.data.filter { gif ->
-                !localDatabase.excludedGifDao().isGIFExcluded(gif.id)
-            }
-            val endOfPaginationReached = gifs.isEmpty()
+            try {
+                val apiResponse = remoteSource.getTrendingGIFs(offset)
+                val gifs = apiResponse.data.filter { gif ->
+                    !localDatabase.excludedGifDao().isGIFExcluded(gif.id)
+                }
+                val endOfPaginationReached = gifs.isEmpty()
 
-            localDatabase.withTransaction {
-                if (loadType == LoadType.REFRESH) {
-                    localDatabase.remoteKeysDao().clearRemoteKeys()
-                    localDatabase.gifDao().clearCache()
+                localDatabase.withTransaction {
+                    withContext(Dispatchers.IO) {
+                        if (loadType == LoadType.REFRESH) {
+                            localDatabase.remoteKeysDao().clearRemoteKeys()
+                            localDatabase.gifDao().clearCache()
+                        }
+
+                        val nextKey = if (endOfPaginationReached) null else nextPageNumber + 1
+
+                        val prevKey = if (nextPageNumber == 0) null else nextPageNumber - 1
+
+                        val keys = gifs.map {
+                            RemoteKeys(gifId = it.id, prevKey = prevKey, nextKey = nextKey)
+                        }
+
+                        localDatabase.remoteKeysDao().insertAll(keys)
+                        localDatabase.gifDao().insertAll(gifs.toEntity())
+                    }
                 }
 
-                val nextKey = if (endOfPaginationReached) null else nextPageNumber + 1
-
-                val prevKey = if (nextPageNumber == 0) null else nextPageNumber - 1
-
-                val keys = gifs.map {
-                    RemoteKeys(gifId = it.id, prevKey = prevKey, nextKey = nextKey)
-                }
-
-                localDatabase.remoteKeysDao().insertAll(keys)
-                localDatabase.gifDao().insertAll(gifs.toEntity())
+                MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
+            } catch (exception: IOException) {
+                MediatorResult.Error(exception)
+            } catch (exception: HttpException) {
+                MediatorResult.Error(exception)
             }
-
-            return MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
-        } catch (exception: IOException) {
-            return MediatorResult.Error(exception)
-        } catch (exception: HttpException) {
-            return MediatorResult.Error(exception)
         }
     }
 
