@@ -1,4 +1,4 @@
-package com.daisy.giphy.ui.utils.adapter
+package com.daisy.giphy.ui.utils
 
 import androidx.recyclerview.widget.DiffUtil
 import com.daisy.domain.models.GIFObject

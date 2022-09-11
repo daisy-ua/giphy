@@ -9,6 +9,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.recyclerview.selection.SelectionPredicates
@@ -20,6 +21,7 @@ import com.daisy.domain.models.GIFObject
 import com.daisy.giphy.R
 import com.daisy.giphy.databinding.FragmentHomeBinding
 import com.daisy.giphy.ui.activity.MainActivity
+import com.daisy.giphy.ui.utils.RecyclerViewInteraction
 import com.daisy.giphy.ui.utils.adapter.GIFPagingAdapter
 import com.daisy.giphy.ui.utils.adapter.ItemsDetailsLookup
 import com.daisy.giphy.ui.utils.adapter.ItemsKeyProvider
@@ -28,11 +30,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class HomeFragment : Fragment() {
-    private val viewModel: HomeViewModel by viewModels()
+class HomeFragment : Fragment(), RecyclerViewInteraction {
+    private val viewModel: HomeViewModel by viewModels({ requireActivity() })
 
+    private var tracker: SelectionTracker<String>? = null
     private lateinit var gifAdapter: GIFPagingAdapter
-    private lateinit var tracker: SelectionTracker<String>
     private var actionMode: ActionMode? = null
 
     override fun onCreateView(
@@ -41,7 +43,7 @@ class HomeFragment : Fragment() {
     ): View {
         val binding = FragmentHomeBinding.inflate(inflater, container, false)
 
-        gifAdapter = GIFPagingAdapter()
+        gifAdapter = GIFPagingAdapter(this@HomeFragment)
 
         binding.bindState(
             uiState = viewModel.state,
@@ -52,15 +54,18 @@ class HomeFragment : Fragment() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        tracker.onSaveInstanceState(outState)
+        tracker?.onSaveInstanceState(outState)
         super.onSaveInstanceState(outState)
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
-        tracker.onRestoreInstanceState(savedInstanceState)
-        if (tracker.hasSelection()) {
-            actionMode = (activity as MainActivity).startSupportActionMode(actionModeCallback)
-            actionMode?.title = "${tracker.selection.size()} ${getString(R.string.action_selected)}"
+        tracker?.let { tracker ->
+            tracker.onRestoreInstanceState(savedInstanceState)
+            if (tracker.hasSelection()) {
+                actionMode = (activity as MainActivity).startSupportActionMode(actionModeCallback)
+                actionMode?.title =
+                    "${tracker.selection.size()} ${getString(R.string.action_selected)}"
+            }
         }
 
         super.onViewStateRestored(savedInstanceState)
@@ -160,12 +165,14 @@ class HomeFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             gifAdapter.loadStateFlow.collectLatest { loadState ->
+
                 notFoundMsg.isVisible =
-                    (loadState.refresh is LoadState.NotLoading
-                            && (gifAdapter.itemCount) < 1)
+                    loadState.refresh is LoadState.NotLoading && gifAdapter.itemCount == 0
+
 
                 recyclerView.isVisible =
                     loadState.source.refresh is LoadState.NotLoading
+                            || loadState.mediator?.refresh is LoadState.NotLoading
             }
         }
     }
@@ -183,7 +190,7 @@ class HomeFragment : Fragment() {
 
         gifAdapter.tracker = tracker
 
-        tracker.addObserver(
+        tracker?.addObserver(
             object : SelectionTracker.SelectionObserver<String>() {
                 override fun onSelectionChanged() {
                     super.onSelectionChanged()
@@ -192,7 +199,7 @@ class HomeFragment : Fragment() {
                         actionMode = currentActivity.startSupportActionMode(actionModeCallback)
                     }
 
-                    val selectedSize = tracker.selection.size()
+                    val selectedSize = tracker!!.selection.size()
                     if (selectedSize > 0) {
                         actionMode?.title = "$selectedSize ${getString(R.string.action_selected)}"
                     } else {
@@ -225,7 +232,7 @@ class HomeFragment : Fragment() {
                 R.id.action_delete -> {
 
                     val gifsSelected = gifAdapter.snapshot().filter { gif ->
-                        gif != null && tracker.selection.contains(gif.id)
+                        gif != null && tracker!!.selection.contains(gif.id)
                     }.map { gif ->
                         gif!!.id
                     }
@@ -242,11 +249,15 @@ class HomeFragment : Fragment() {
         }
 
         override fun onDestroyActionMode(mode: ActionMode?) {
-            tracker.clearSelection()
+            tracker?.clearSelection()
             actionMode = null
         }
     }
 
+    override fun onItemClicked(position: Int) {
+        val action = HomeFragmentDirections.actionHomeToDetails(position)
+        findNavController().navigate(action)
+    }
 
     private companion object {
         const val PORTRAIT_COLUMNS = 2

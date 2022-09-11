@@ -7,9 +7,12 @@ import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.RecyclerView
 import com.daisy.domain.models.GIFObject
 import com.daisy.giphy.databinding.ContainerRvGifBinding
+import com.daisy.giphy.ui.utils.Comparator
+import com.daisy.giphy.ui.utils.RecyclerViewInteraction
 import javax.inject.Inject
 
 class GIFPagingAdapter @Inject constructor(
+    private val interactions: RecyclerViewInteraction,
 ) : PagingDataAdapter<GIFObject, RecyclerView.ViewHolder>(Comparator) {
     var tracker: SelectionTracker<String>? = null
 
@@ -24,6 +27,7 @@ class GIFPagingAdapter @Inject constructor(
             if (holder is GIFViewHolder) {
                 tracker?.let {
                     holder.bind(gif, it.isSelected(gif.id))
+                    holder.itemView.setOnClickListener { interactions.onItemClicked(position) }
                 }
             }
         }

@@ -1,60 +1,74 @@
 package com.daisy.giphy.ui.fragments.details
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.daisy.giphy.R
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
+import com.daisy.giphy.databinding.FragmentGifDetailsBinding
+import com.daisy.giphy.ui.fragments.home.HomeViewModel
+import com.daisy.giphy.ui.utils.viewpager.ViewPagerAdapter
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [GIFDetailsFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
+@AndroidEntryPoint
 class GIFDetailsFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+    private val args: GIFDetailsFragmentArgs by navArgs()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+    private lateinit var binding: FragmentGifDetailsBinding
+    private val viewModel: HomeViewModel by viewModels({ requireActivity() })
+
+    private lateinit var adapter: ViewPagerAdapter
+    private var shouldScroll = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_gif_details, container, false)
+    ): View {
+        binding = FragmentGifDetailsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(isInitialPageLoaded, shouldScroll)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        savedInstanceState?.let { state ->
+            shouldScroll = state.getBoolean(isInitialPageLoaded)
+        }
+        super.onViewStateRestored(savedInstanceState)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.backBtn.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
+        adapter = ViewPagerAdapter()
+
+        binding.viewPager.adapter = adapter
+
+        binding.viewPager.viewTreeObserver.addOnGlobalLayoutListener {
+            if (adapter.snapshot().size > 0 && !shouldScroll) {
+                shouldScroll = true
+                binding.viewPager.setCurrentItem(args.position, false)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            viewModel.pagingDataFlow.collectLatest(adapter::submitData)
+        }
     }
 
     companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment GIFDetailsFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            GIFDetailsFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
-            }
+        const val isInitialPageLoaded = "isInitialPageLoaded"
     }
 }

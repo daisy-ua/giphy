@@ -18,4 +18,7 @@ data class GIFObjectEntity(
 
     @ColumnInfo(name = "original_url")
     val originalUrl: String?,
+
+    @ColumnInfo(name = "fixed_still")
+    val fixedStill: String?,
 )

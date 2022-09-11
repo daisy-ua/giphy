@@ -1,27 +1,52 @@
 package com.daisy.giphy.ui.utils
 
-import android.widget.ImageView
-import com.bumptech.glide.annotation.GlideModule
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.bumptech.glide.module.AppGlideModule
-import com.daisy.domain.models.GIFObject
-import com.daisy.giphy.R
+import android.content.Context
+import android.net.Uri
+import com.facebook.cache.disk.DiskCacheConfig
+import com.facebook.common.util.ByteConstants
+import com.facebook.drawee.backends.pipeline.Fresco
+import com.facebook.drawee.controller.AbstractDraweeController
+import com.facebook.drawee.view.SimpleDraweeView
+import com.facebook.imagepipeline.core.ImagePipelineConfig
+import com.facebook.imagepipeline.request.ImageRequest
+import com.facebook.imagepipeline.request.ImageRequestBuilder
+import javax.inject.Inject
 
+class ImageManager @Inject constructor(
+    context: Context,
+) {
+    init {
+        val previewsDiskConfig = DiskCacheConfig.newBuilder(context)
+            .setMaxCacheSize(250L * ByteConstants.MB).build()
 
-@GlideModule
-class GlideModule : AppGlideModule()
+        val qualityDiskConfig = DiskCacheConfig.newBuilder(context)
+            .setMaxCacheSize(250L * ByteConstants.MB).build()
 
-object ImageManager {
-    fun getImage(
-        view: ImageView,
-        gif: GIFObject,
-    ) =
-        GlideApp.with(view.context)
-            .asGif()
-            .load(gif.url)
-            .error(R.drawable.ic_launcher_background)
-            .transition(DrawableTransitionOptions.withCrossFade())
-            .diskCacheStrategy(DiskCacheStrategy.DATA)
-            .into(view)
+        val config = ImagePipelineConfig.newBuilder(context)
+            .setSmallImageDiskCacheConfig(previewsDiskConfig)
+            .setMainDiskCacheConfig(qualityDiskConfig)
+            .build()
+
+        Fresco.initialize(context, config)
+    }
+
+    companion object {
+        fun getImage(
+            view: SimpleDraweeView,
+            url: String?,
+            previewUrl: String?,
+        ): AbstractDraweeController<*, *>? {
+            return Fresco.newDraweeControllerBuilder()
+                .setLowResImageRequest(
+                    ImageRequestBuilder
+                        .newBuilderWithSource(Uri.parse(previewUrl))
+                        .setCacheChoice(ImageRequest.CacheChoice.SMALL)
+                        .build()
+                )
+                .setUri(url)
+                .setAutoPlayAnimations(true)
+                .setOldController(view.controller)
+                .build()
+        }
+    }
 }

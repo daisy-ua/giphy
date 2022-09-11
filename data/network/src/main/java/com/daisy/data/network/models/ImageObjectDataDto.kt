@@ -3,7 +3,9 @@ package com.daisy.data.network.models
 import com.google.gson.annotations.SerializedName
 
 data class ImageObjectDto(
-    val url: String,
+    val webp: String?,
+
+    val url: String?,
 
     val height: String,
 
@@ -12,5 +14,10 @@ data class ImageObjectDto(
 
 data class ImagesDto(
     @SerializedName("fixed_height")
-    val fixedHeightImage: ImageObjectDto,
+    val fixedHeight: ImageObjectDto,
+
+    val original: ImageObjectDto,
+
+    @SerializedName("fixed_height_still")
+    val fixedStill: ImageObjectDto
 )

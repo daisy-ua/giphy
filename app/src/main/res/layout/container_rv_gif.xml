@@ -5,14 +5,14 @@
     android:layout_margin="2dp"
     android:background="@color/cultured">
 
-    <ImageView
+    <com.facebook.drawee.view.SimpleDraweeView
         android:id="@+id/gif_view"
         android:layout_width="170dp"
         android:layout_height="170dp"
         android:layout_centerInParent="true"
         android:adjustViewBounds="true"
         android:background="@color/cultured"
-        android:scaleType="centerCrop" />
+        android:scaleType="centerCrop"/>
 
     <View
         android:id="@+id/selection_background"

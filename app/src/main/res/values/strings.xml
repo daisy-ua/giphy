@@ -5,4 +5,6 @@
     <string name="not_found_msg">Nothing was found!</string>
     <string name="delete">Delete</string>
     <string name="action_selected">selected</string>
+    <string name="details_label">Details</string>
+    <string name="gif">GIF</string>
 </resources>

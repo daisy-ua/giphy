@@ -7,6 +7,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.daisy.domain.models.GIFObject
 import com.daisy.giphy.databinding.ContainerRvGifBinding
 import com.daisy.giphy.ui.utils.ImageManager
+import com.facebook.drawee.backends.pipeline.Fresco
+import com.facebook.imagepipeline.request.ImageRequest
 
 class GIFViewHolder(
     private val binding: ContainerRvGifBinding,
@@ -23,7 +25,9 @@ class GIFViewHolder(
             gifView.layoutParams = params
 
             gifView.contentDescription = gif.title
-            ImageManager.getImage(gifView, gif)
+
+            gifView.controller = ImageManager.getImage(gifView, gif.fixedHeightUrl, gif.fixedStill)
+
             selectionCheck.isVisible = isSelected
             selectionBackground.isVisible = isSelected
         }

@@ -5,5 +5,9 @@ data class GIFObject(
 
     val title: String,
 
-    val url: String
+    val fixedHeightUrl: String?,
+
+    val originalUrl: String?,
+
+    val fixedStill: String?
 )

@@ -9,6 +9,20 @@
         android:id="@+id/home_fragment"
         android:name="com.daisy.giphy.ui.fragments.home.HomeFragment"
         android:label="@string/home_label"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_details"
+            app:destination="@id/details_fragment"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/details_fragment"
+        android:name="com.daisy.giphy.ui.fragments.details.GIFDetailsFragment"
+        android:label="@string/details_label"
+        tools:layout="@layout/fragment_gif_details">
+        <argument
+            android:name="position"
+            app:argType="integer" />
+    </fragment>
 
 </navigation>

@@ -1,16 +1,19 @@
 package com.daisy.data.repository.mappers
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.daisy.data.cache.entities.GIFObjectEntity
 import com.daisy.data.network.models.GIFObjectDto
-import java.time.LocalDateTime
 
-fun List<GIFObjectDto>.toEntity() = map { it.toEntity() }
+internal fun List<GIFObjectDto>.toEntity() = map { it.toEntity() }
 
-@RequiresApi(Build.VERSION_CODES.O)
-fun GIFObjectDto.toEntity() =
-    GIFObjectEntity(uid = id,
+internal fun GIFObjectDto.toEntity() =
+    GIFObjectEntity(
+        uid = id,
         title = title,
-        url = images.fixedHeightImage.url,
-        dateAdded = LocalDateTime.now())
+        fixedHeightUrl = images.fixedHeight.let {
+            it.webp ?: it.url
+        },
+        originalUrl = images.original.let {
+            it.webp ?: it.url
+        },
+        fixedStill = images.fixedStill.url
+    )
